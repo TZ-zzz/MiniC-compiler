@@ -13,7 +13,7 @@ int max(int * n_list){
 }
 
 int main(){
-    int n_list[10] = {-2, 3, 1, 7, 0, 5, 4, 8, 12, -4};
+    int n_list[10] = {-2, 3, 1, 7, 0, 5, 4, 8, 10, -4};
     int m = max(n_list);
     putint(m);
     putnewline();
