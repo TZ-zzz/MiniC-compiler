@@ -1,0 +1,6 @@
+{
+    "cmake.sourceDirectory": "${workspaceFolder}/a1/minicc",
+    "files.associations": {
+        "minicio.h": "c"
+    }
+}
