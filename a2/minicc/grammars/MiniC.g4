@@ -13,67 +13,114 @@ grammar MiniC;
 prog returns [minicc::Program *val]
 /*You may need init in Assignment 3*/
 @init {}
-:	
+:	preamble decl
 ;
-preamble:  ;
+preamble:  '#include' '"minicio.h"'
+    |  ;
 decl
-:   
+:   vardecl
+    | rettype funcname '(' parameters ')' scope
+    | rettype funcname '(' parameters ')' ';'
+    | decl decl
     ;
 vardecl
-:   
+:   vartype varlist ';'
+    | vardecl vardecl
     ;
 scope
 /*You may need init in Assignment 3*/
 @init {}
-:  
+:  '{' vardecl stmt '}'
+    | '{' stmt '}'
+    | '{'  '}'
     ;
 stmt
-:   
+:   expr ';'
+    | 'if' '(' expr ')' stmt
+    | 'if' '(' expr ')' stmt 'else' stmt
+    | 'for' '(' expropt ';' expropt ';' expropt ')' stmt
+    | 'while' '(' expr ')' stmt
+    | 'break' ';'
+    | 'return' ';'
+    | 'return' expr ';'
+    | scope
+    | stmt stmt
     ;
 varlist
-:    
+:    varname
+    | varname '[' INT ']'
+    | varlist ',' varlist
     ;
 varlistentry
 :   
     ;
 vartype
-:   
+:   'int'
+    | 'bool'
     ;
 rettype
-:   
+:   'void'
+    | vartype
     ;
 parameters
 :   
+    | parameterlist
     ;
 parameterlist
-:   
+:   vartype parametername
+    | parameterlist ',' parameterlist
     ;
 parameterentry
 :   
     ;
 expropt
-:   
+:   expr
+    |
     ;
 expr
-:   
+:   INT
+    | '-' expr
+    | expr '*' expr
+    | expr '/' expr
+    | expr '+' expr
+    | expr '-' expr
+    | 'true'
+    | 'false'
+    | '!' expr
+    | expr '&&' expr
+    | expr '||' expr
+    | expr '==' expr
+    | expr '!=' expr
+    | expr '<' expr
+    | expr '>' expr
+    | expr '<' '=' expr
+    | expr '>' '=' expr
+    | '(' expr ')'
+    | var
+    | funcname '(' arguments ')'
+    | var '=' expr
+    | parametername
     ;
 var
-:   
+:   varname
+    | varname '[' expr ']'
     ;
 arguments
 :   
+    | argumentlist
     ;
 argumentlist
-:   
+:   expr
+    | argumentlist ',' argumentlist
     ;
 varname
-:   
+:   ID
     ;
 funcname
-:   
+:   ID
     ;
 parametername
-:   
+:   ID
     ;
 
 ID:     [a-zA-Z][a-zA-Z0-9_]* ;
