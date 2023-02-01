@@ -13,7 +13,7 @@ grammar MiniC;
 prog returns [minicc::Program *val]
 /*You may need init in Assignment 3*/
 @init {}
-:	preamble decl
+:	preamble decl EOF
 ;
 preamble:  '#include' '"minicio.h"'
     |  ;
@@ -21,18 +21,18 @@ decl
 :   declentry+
     ;
 declentry
-:   vardecl
+:   vardecl+
     | rettype funcname '(' parameters ')' scope
     | rettype funcname '(' parameters ')' ';'
     ;
 vardecl
-:   (vartype varlist ';')+
+:   vartype varlist ';' 
     ;
 scope
 /*You may need init in Assignment 3*/
 @init {}
-:  '{' vardecl stmt_list '}'
-    | '{' stmt_list '}'
+:  '{' vardecl+ stmt+ '}'
+    | '{' stmt+ '}'
     | '{'  '}'
     ;
 stmt
@@ -46,8 +46,6 @@ stmt
     | 'return' expr ';'
     | scope
     ;
-stmt_list:
-    stmt+;
 
 varlist
 :   varlistentry
