@@ -10,7 +10,7 @@ grammar MiniC;
 }
 /*Add your grammar rules in Assignment 2*/
 /*Then add compiler actions in Assignment 3*/
-prog returns [minicc::Program *val]
+prog //returns [minicc::Program *val]
 /*You may need init in Assignment 3*/
 @init {}
 :	preamble decl
@@ -21,17 +21,17 @@ decl
 :   vardecl
     | rettype funcname '(' parameters ')' scope
     | rettype funcname '(' parameters ')' ';'
-    | decl decl
+    | decl decl+
     ;
 vardecl
 :   vartype varlist ';'
-    | vardecl vardecl
+    | vardecl vardecl+
     ;
 scope
 /*You may need init in Assignment 3*/
 @init {}
-:  '{' vardecl stmt '}'
-    | '{' stmt '}'
+:  '{' vardecl stmt_list '}'
+    | '{' stmt_list '}'
     | '{'  '}'
     ;
 stmt
@@ -44,8 +44,10 @@ stmt
     | 'return' ';'
     | 'return' expr ';'
     | scope
-    | stmt stmt
     ;
+stmt_list:
+    stmt+;
+
 varlist
 :    varname
     | varname '[' INT ']'
@@ -80,21 +82,14 @@ expropt
 expr
 :   INT
     | '-' expr
-    | expr '*' expr
-    | expr '/' expr
-    | expr '+' expr
-    | expr '-' expr
+    | '!' expr
+    | expr ('*' | '/') expr
+    | expr ('+'|'-') expr
     | 'true'
     | 'false'
-    | '!' expr
+    | expr ('==' | '!=' | '<' | '<=' | '>' | '>=') expr
     | expr '&&' expr
     | expr '||' expr
-    | expr '==' expr
-    | expr '!=' expr
-    | expr '<' expr
-    | expr '>' expr
-    | expr '<' '=' expr
-    | expr '>' '=' expr
     | '(' expr ')'
     | var
     | funcname '(' arguments ')'
