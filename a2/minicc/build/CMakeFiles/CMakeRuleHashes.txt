@@ -1,0 +1,2 @@
+# Hashes of file build rules.
+e21f2b64a5fc19165fbe47103196b3a6 grammars/MiniC/MiniCListener.cpp

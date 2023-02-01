@@ -10,7 +10,7 @@ grammar MiniC;
 }
 /*Add your grammar rules in Assignment 2*/
 /*Then add compiler actions in Assignment 3*/
-prog //returns [minicc::Program *val]
+prog returns [minicc::Program *val]
 /*You may need init in Assignment 3*/
 @init {}
 :	preamble decl
@@ -18,14 +18,15 @@ prog //returns [minicc::Program *val]
 preamble:  '#include' '"minicio.h"'
     |  ;
 decl
+:   declentry+
+    ;
+declentry
 :   vardecl
     | rettype funcname '(' parameters ')' scope
     | rettype funcname '(' parameters ')' ';'
-    | decl decl+
     ;
 vardecl
-:   vartype varlist ';'
-    | vardecl vardecl+
+:   (vartype varlist ';')+
     ;
 scope
 /*You may need init in Assignment 3*/
@@ -49,12 +50,12 @@ stmt_list:
     stmt+;
 
 varlist
-:    varname
-    | varname '[' INT ']'
-    | varlist ',' varlist
+:   varlistentry
+    | varlistentry (',' varlistentry)+
     ;
 varlistentry
-:   
+:   varname
+    | varname '[' INT ']'
     ;
 vartype
 :   'int'
@@ -69,11 +70,11 @@ parameters
     | parameterlist
     ;
 parameterlist
-:   vartype parametername
-    | parameterlist ',' parameterlist
+:   parameterentry
+    | parameterentry (',' parameterentry)+
     ;
 parameterentry
-:   
+:   vartype parametername
     ;
 expropt
 :   expr
@@ -106,7 +107,7 @@ arguments
     ;
 argumentlist
 :   expr
-    | argumentlist ',' argumentlist
+    | expr (',' expr)+
     ;
 varname
 :   ID
