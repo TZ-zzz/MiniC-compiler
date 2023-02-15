@@ -1,0 +1,5 @@
+For most rules, I just follow the language. For stmt, I notice that my number of stmt is different with the expected number which is because the  left-recursion. I add a stmt_list for the case that number of stmts are greater than or equal to 1 so that the combination of two statements will not form the 3rd statement which satisfies the public test. In the meantime, I found that stmt_list only appears in scope, therefore I replace the stmt_list in the scope with the rule of stmt_list and delete the explict stmt_list rule. And then I did the same thing for the vardecl.
+
+For parameterlist and varlist, I notice that they are left-recursive too. Then I decide to use parameterlistentry and varlistentry which contains the case that there is only one parameter or variable. Then varlist (parameterlist) contains one or more varlistentries (parameterlistentry).
+
+Use the same strategy, I create the declentry which is the rule of single declaration and decl contains one or more declentries.
