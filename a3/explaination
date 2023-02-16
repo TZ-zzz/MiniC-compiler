@@ -1,5 +1,7 @@
-For most rules, I just follow the language. For stmt, I notice that my number of stmt is different with the expected number which is because the  left-recursion. I add a stmt_list for the case that number of stmts are greater than or equal to 1 so that the combination of two statements will not form the 3rd statement which satisfies the public test. In the meantime, I found that stmt_list only appears in scope, therefore I replace the stmt_list in the scope with the rule of stmt_list and delete the explict stmt_list rule. And then I did the same thing for the vardecl.
+First, I read the ASTNode classes to get the structure of our AST tree. Then I just need to add complier actions to the rules I written in A2.
 
-For parameterlist and varlist, I notice that they are left-recursive too. Then I decide to use parameterlistentry and varlistentry which contains the case that there is only one parameter or variable. Then varlist (parameterlist) contains one or more varlistentries (parameterlistentry).
+For most rules, what we need to do is to initialize the rule and add sub-rule as its child. For some cases, the return values are list, then we need to initialize an empty vector and add no element or one element to it. And for recursion cases, we only need to add the latter element in the end of vector.
 
-Use the same strategy, I create the declentry which is the rule of single declaration and decl contains one or more declentries.
+For the rules involves vectors we mentioned above, we need to add all elements in the vector as children. Therefore we need to loop over the number of elements which can be done by the std::vector::iterator, and add each element as a child.
+
+For the test, I first ran the public tests and passed all of them. Then I ran the program with private test cases of A2 and see if there were anything wrong.
