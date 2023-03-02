@@ -1,0 +1,1 @@
+This is a program that returns the maximum number in a given list.

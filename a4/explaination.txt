@@ -1,0 +1,3 @@
+Given hints are really useful, I just followed the hints to check the situations of each error report and push_back the corrosponding error message into Errors. Be careful about the error position (the second number in brackets). 
+
+For the test case, I first ran the public test cases and debugged my code. Then I came up some test cases by myself. Also, I read some posts on the piazza to get some hart test cases especially for the post @228 which contains almost all the errors. 
