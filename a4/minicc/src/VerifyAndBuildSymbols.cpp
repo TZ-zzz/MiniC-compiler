@@ -25,7 +25,6 @@ namespace minicc {
     void VerifyAndBuildSymbols::visitProgram(Program *prog) {
         //start your code here
         VisitingProgram = prog;
-        ASTVisitor::visitProgram(prog);
         if (prog->syslibFlag()) {
             // Manually populate the function symbol table
             // ...
@@ -33,6 +32,7 @@ namespace minicc {
             prog->funcTable()->insert_funcsym("putint", Type(Type::Void), (std::vector<Type>) {Type(Type::Int)}, true);
             prog->funcTable()->insert_funcsym("putnewline", Type(Type::Void), std::vector<Type>(), true);
         }
+        ASTVisitor::visitProgram(prog);
     }
 
     void VerifyAndBuildSymbols::visitVarDecl(VarDeclaration *decl) {
@@ -89,7 +89,7 @@ namespace minicc {
             }
         }
         else {
-            func_table->insert_funcsym(func->name(), Type(func->returnType()), param_types, true);
+            func_table->insert_funcsym(func->name(), Type(func->returnType()), param_types, false);
         }
 
         if (func->hasBody()){
@@ -203,11 +203,12 @@ namespace minicc {
         ASTVisitor::visitBinaryExpr(expr);
         Expr *e_1 = (Expr*)expr->getChild(0);
         Expr *e_2 = (Expr*)expr->getChild(1);
+        // defualt type is the type of the first operand
+        expr->setExprType(Type(e_1->exprType()));
         //Hint: Check that for logical opcode, both operand need to be bool
         if (expr->opcode() == Expr::And || expr->opcode() == Expr::Or){
             if (!e_1->exprType().isBool() || !e_2->exprType().isBool()){
                 Errors.push_back(ErrorMessage("\"&&\"/\"||\" opcode must have bool operand!", expr->srcLoc()));
-                expr->setExprType(Type(e_1->exprType()));
             }
             else{
                 expr->setExprType(Type(Type::Bool));
@@ -219,19 +220,24 @@ namespace minicc {
             if (e_1->exprType() != e_2->exprType() || e_1->exprType().arrayBound() || e_2->exprType().arrayBound()){
                 Errors.push_back(ErrorMessage("\"==\"/\"!=\" opcode must have same primitive type operand!", expr->srcLoc()));
             }
-            expr->setExprType(Type(Type::Bool));
+            else {
+                expr->setExprType(Type(Type::Bool));
+            }
         }
         else {
             //      Check that for arithmetic and other comparison operand, both operand need to be int
             if (!e_1->exprType().isInt() || !e_2->exprType().isInt()){
                 Errors.push_back(ErrorMessage("\"" + Expr::opcodeToString(expr->opcode()) + "\" opcode must have int type operand!", expr->srcLoc()));
             }
-            if (expr->opcode() == Expr::Less || expr->opcode() == Expr::LessEqual || expr->opcode() == Expr::Greater || expr->opcode() == Expr::GreaterEqual){
-                expr->setExprType(Type(Type::Bool));
+            else {
+                if (expr->opcode() == Expr::Less || expr->opcode() == Expr::LessEqual || expr->opcode() == Expr::Greater || expr->opcode() == Expr::GreaterEqual){
+                    expr->setExprType(Type(Type::Bool));
+                }
+                else{
+                    expr->setExprType(Type(Type::Int));
+                }
             }
-            else{
-                expr->setExprType(Type(Type::Int));
-            }
+
         }
 
     }
@@ -248,7 +254,7 @@ namespace minicc {
             FuncSymbolEntry *callee = expr->root()->funcTable()->get_funcsym(callee_name);
             //      Check the number of arguments must match the number of parameters
             if (callee->ParameterTypes.size() != expr->numArgs()){
-                Errors.push_back(ErrorMessage("Function " + callee_name + "() is declared with " + std::to_string(expr->numArgs()) + " parameters but called with " +std::to_string(callee->ParameterTypes.size()) + " arguments!", expr->srcLoc()));
+                Errors.push_back(ErrorMessage("Function " + callee_name + "() is declared with " + std::to_string(callee->ParameterTypes.size()) + " parameters but called with " +std::to_string(expr->numArgs()) + " arguments!", expr->srcLoc()));
             }
             else{
                 for (int i = 0; i < expr->numArgs(); i++){
