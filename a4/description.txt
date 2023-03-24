@@ -1,5 +1,5 @@
-for test case "private_tests/function_fail.c", I made an error when I insert new function to the table, I set the HasBody attribute of it be true defalutly which should be set to false defalutly.
+for test case "private_tests/function_fail.c", I made an error when I insert new function to the table, I set the HasBody attribute of it be true defalutly which should be set to false defalutly. (line 92)
 
-for test case "private_tests/pizza_fail4.c", I made an mistake when I add the error messages. The position of declared parameter number and called parameters number was in the wrong position, I just switched them in the error message in this version.
+for test case "private_tests/pizza_fail4.c", I made an mistake when I add the error messages. The position of declared parameter number and called parameters number was in the wrong position, I just switched them in the error message in this version. (line 229)
 
-for test case "private_tests/pizza_fail4.c", I loop over all children of program first and then insert  "putnewline", "getInt" and "putint" to the function table which makes when the visitor visits all rest of program, these three functions are not inserted in table which gives an no declaration error. I just changed the order of code which adds them to table first and then visit all the rest of program.
+for test case "private_tests/pizza_fail4.c", I loop over all children of program first and then insert  "putnewline", "getInt" and "putint" to the function table which makes when the visitor visits all rest of program, these three functions are not inserted in table. This gives an no declaration error. I just changed the order of code which adds them to table first and then visit all the rest of program. (line 32)

@@ -1,0 +1,12 @@
+There are two bugs in my implementation. The first one gives a segementation fault when the program involves a while. 
+I forgot to create a branch for cond_block. I simply add the CreateBr(cond_block) and the segementation fault disappears.
+
+The second bug is in binary expression, My control flow is not correct and the setup of phi node is wrong. 
+
+I first changed the control flow and then I figure out that for the phi node incoming blocks and values, I just 
+need to check the second subexpression. Since if the first expression is true (false) for Or (And), the result should 
+be fixed and we do not need the value of second expression and we do skip the slow block and go directly to the exit block.
+And if the value of expression can't be determinted by the left subexpression, we need to check the right subexpression. 
+Therefore, we go slow blocks and evaluate the second subexpression. 
+Thus, for the phi node, if we come from the entry block, the value should be "0" for the "And" and "1" for the "Or". Else 
+if we come from the slow block, the value should be the value of second subexpression. 

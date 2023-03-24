@@ -1,0 +1,3 @@
+Almost all of code follows the key instructions in a5.pdf table4, 5. Also, I create a map to store the pair of expr* and llvm::Value* as it recommanded in tips section. Also, I add a breakstmts stack which keep track of the nearest exit block of scope. It will be used when meeting break and return statment.
+
+For the debugging, I was suffering the segmentation fault. The bug was I set the creatGEP with the variable type instead of array type. After fixing this bug. there were still seg fault. The reason was I cast the IndexExpr() to the LiteralExpr and call value() on it. However, IndexExpr() doesn't garantee to be the LiteralExpr type which cases seg fault.
