@@ -10,6 +10,7 @@
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
 #include "llvm/IR/CFG.h"
+#include "llvm/IR/Constants.h"
 #include <set>
 #include <map>
 
@@ -24,15 +25,219 @@ namespace {
         std::set<AllocaInst*> TargetAllocas;
         std::map<BasicBlock*, std::map<AllocaInst*, Value*> > Post;
         std::map<BasicBlock*, std::map<AllocaInst*, PHINode*> > Pre;
+        std::set<PHINode*> all_phi;
+
+        void update_post(BasicBlock *bb, AllocaInst *ai, Value *v) {
+            if (Post.find(bb) == Post.end()) {
+                Post[bb] = std::map<AllocaInst*, Value*>();
+            }
+            Post[bb][ai] = v;
+        }
+
+        void update_pre(BasicBlock *bb, AllocaInst *ai, PHINode *v) {
+            if (Pre.find(bb) == Pre.end()) {
+                Pre[bb] = std::map<AllocaInst*, PHINode*>();
+            }
+            Pre[bb][ai] = v;
+        }
 
         void collectTargetAllocas(Function &F) {
-           //start your code here 
+            //start your code here 
+            for (auto it = F.begin(); it != F.end(); it++) {
+                BasicBlock *bb = &*it;
+                for (auto it2 = bb->begin(); it2 != bb->end(); it2++) {\
+                    Instruction *inst = &*it2;
+                    if (AllocaInst *alloca = dyn_cast<AllocaInst>(it2)) {
+                        // for the pointer case, see piazza @434
+                        if (alloca->getAllocatedType()->isIntegerTy() && !alloca->isArrayAllocation()) {
+                            TargetAllocas.insert(alloca);
+                        }
+                    }
+               }
+           }
+        }
+
+        Value *get_post(BasicBlock *bb, AllocaInst *ai) {
+            if (Post.find(bb) == Post.end()) {
+                return nullptr;
+            }
+            if (Post[bb].find(ai) == Post[bb].end()) {
+                return nullptr;
+            }
+            return Post[bb][ai];
+        }
+
+        Value *get_pre(BasicBlock *bb, AllocaInst *ai) {
+            if (Pre.find(bb) == Pre.end()) {
+                return nullptr;
+            }
+            if (Pre[bb].find(ai) == Pre[bb].end()) {
+                return nullptr;
+            }
+            return Pre[bb][ai];
+        }
+
+        bool check_redundant(PHINode *phi) {
+            if (phi->getNumIncomingValues() == 0) {
+                phi->eraseFromParent();
+                all_phi.erase(phi);
+                return true;
+            }
+            else if (phi->getNumIncomingValues() == 1) {
+                phi->replaceAllUsesWith(phi->getIncomingValue(0));
+                phi->eraseFromParent();
+                all_phi.erase(phi);
+                return true;
+            }
+            else {
+                // try to remove incoming self referencing and undef value
+                for (int i = 0; i < phi->getNumIncomingValues(); i++) {
+                    if (phi->getIncomingValue(i) == phi || llvm::isa<llvm::UndefValue>(phi->getIncomingValue(i))) {
+                        phi->removeIncomingValue(i, false);
+                        return true;
+                    }
+                }
+                
+                if (phi->hasConstantOrUndefValue()) {
+                    if (llvm::isa<llvm::UndefValue>(phi->getIncomingValue(0))) {
+                        phi->eraseFromParent();
+                        all_phi.erase(phi);
+                        return true;
+                    }
+                    else {
+                        phi->replaceAllUsesWith(phi->getIncomingValue(0));
+                        phi->eraseFromParent();
+                        all_phi.erase(phi);
+                        return true;
+                    }
+                }
+
+            }
+            return false;
+
         }
 
         virtual bool runOnFunction(Function &F) {
             errs() << "Working on function called " << F.getName() << "!\n";
+            // step 1: Detect all alloca instructions that could be promoted.
             collectTargetAllocas(F);
             //start your code here
+
+            // step 2
+            std::set<Instruction *> all_inst;
+            for (auto it = F.begin(); it != F.end(); it++) {
+                BasicBlock *bb = &*it;
+                if (bb != &F.getEntryBlock()) {
+                    for (AllocaInst *ai : TargetAllocas) {
+                        PHINode *phi = PHINode::Create(ai->getAllocatedType(), 0, "phi", bb->getFirstNonPHI());
+                        for (BasicBlock *pred : llvm::predecessors(bb)) {
+                            phi->addIncoming(llvm::UndefValue::get(ai->getAllocatedType()), pred);
+                        }
+                        update_pre(bb, ai, phi);
+                        update_post(bb, ai, phi);
+                        all_phi.insert(phi);
+                    }
+                }
+
+                for (auto it = bb->begin(); it != bb->end(); it++) {
+                    Instruction *inst = &*it;
+                    if (llvm::isa<LoadInst>(inst)) {
+                        llvm::Value *v = ((LoadInst *) inst)->getPointerOperand();
+                        if (TargetAllocas.find((llvm::AllocaInst*)v) != TargetAllocas.end()) {
+                            Value *value = get_post(bb, (llvm::AllocaInst *)v);
+                            for (Instruction &it : bb->getInstList()) {
+                                for (int i = 0; i < it.getNumOperands(); i++) {
+                                    if (it.getOperand(i) == (LoadInst *) inst) {
+                                        it.setOperand(i, value);
+                                    }
+                                }
+                            }
+                            all_inst.insert(inst);
+
+                        }
+                    }
+                    else if (llvm::isa<StoreInst>(inst)) {
+                        llvm::Value *v = ((StoreInst *) inst)->getPointerOperand();
+                        if (TargetAllocas.find((llvm::AllocaInst *)v) != TargetAllocas.end()) {
+                            Value *value = get_post(bb, (llvm::AllocaInst *)v);
+                            if (value == nullptr) {
+                                if (Post.find(bb) == Post.end()) {
+                                    Post.insert(std::make_pair(bb, std::map<AllocaInst*, Value*>()));
+                                }
+                                Post[bb][(llvm::AllocaInst *)v] = ((StoreInst *) inst)->getValueOperand();
+                                
+                            }
+                            else {
+                                Post[bb][(llvm::AllocaInst *)v] = ((StoreInst *) inst)->getValueOperand();
+                            }
+                        all_inst.insert(inst);
+                        }
+                    }
+                }
+            }
+
+            // step 3: Fill incoming edges of all created PHI instructions
+            for (auto it = Pre.begin(); it != Pre.end(); it++) {
+                BasicBlock *bb = it->first;
+                for (auto it2 = Pre[bb].begin(); it2 != Pre[bb].end(); it2++) {
+                    AllocaInst *ai = it2->first;
+                    PHINode *phi = it2->second;
+                    for (int i = 0; i < phi->getNumIncomingValues(); i++) {
+                        BasicBlock *pred = phi->getIncomingBlock(i);
+                        Value *value = get_post(pred, ai);
+                        if (value){
+                            phi->setIncomingValue(i, value);
+                        }
+                    }
+                }
+            }
+
+            // step 4: Remove unused PHI instructions
+            std::set <PHINode *> deleted_phi;
+            for (auto it = all_phi.begin(); it != all_phi.end(); it++) {
+                PHINode *phi = *it;
+                if (phi->getNumUses() == 0) {
+                    phi->eraseFromParent();
+                    deleted_phi.insert(phi);
+                }
+            }
+            for (auto it = deleted_phi.begin(); it != deleted_phi.end(); it++) {
+                all_phi.erase(*it);
+            }
+
+            // step 5, 6: Remove all instructions that are no longer needed
+            for (auto it = all_inst.begin(); it != all_inst.end(); it++) {
+                Instruction *inst = *it;
+                inst->eraseFromParent();
+            }
+
+            for (auto it = TargetAllocas.begin(); it != TargetAllocas.end(); it++) {
+                AllocaInst *ai = *it;
+                ai->eraseFromParent();
+            }
+
+            // step 7: Remove all PHI instructions that are no longer needed
+            bool flag = true;
+            while (flag) {
+                flag = false;
+                for (auto it = all_phi.begin(); it != all_phi.end(); it++) {
+                    PHINode *phi = *it;
+                    bool flag2 = check_redundant(phi);
+                    if (flag2) {
+                        flag = true;
+                        break;
+                    }
+
+                }
+            }
+
+            TargetAllocas.clear();
+            Pre.clear();
+            Post.clear();
+            all_phi.clear();
+            all_inst.clear();
+            deleted_phi.clear();
+
             return true;
         }
     };
