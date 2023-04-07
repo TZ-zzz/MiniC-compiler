@@ -16,8 +16,6 @@ int loop(){
         else {
             b = false;
         }
-        // a = b && d;
-
         a = b || c;
         a = b && true;
         a = b || false;

@@ -13,7 +13,9 @@ llvm_map_components_to_libnames(llvm_libs support bitwriter core)
 target_link_libraries(minicc PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/libirgen.a ${CMAKE_CURRENT_BINARY_DIR}/libast.a ${llvm_libs} grammar ${ANTLR4_LIB_DIR}/libantlr4-runtime.a)
 
 add_library(alloca2reg MODULE Alloca2Reg.cpp)
+add_library(algebraicsimplify MODULE AlgebraicSimplification.cpp)
 target_compile_options(alloca2reg PRIVATE -fno-rtti)
+target_compile_options(algebraicsimplify PRIVATE -fno-rtti)
 
 # Get proper shared-library behavior (where symbols are not necessarily
 # resolved when the shared library is linked) on OS X.

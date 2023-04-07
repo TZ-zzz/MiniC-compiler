@@ -1,0 +1,8 @@
+opt-15 -O0 -load src/liballoca2reg.so --alloca2reg -load src/libalgebraicsimplify.so --algebraicssimplification output.bc -o output_opt.bc -enable-new-pm=0
+
+both_optgen_path = ['opt-15', '-O0', '-load', local_path + 'src/liballoca2reg.so', '--alloca2reg',
+                  '-load', local_path + 'src/libalgebraicsimplify.so', '--algebraicsimplification',
+                  'output.bc', '-o', 'output_both_opt.bc', '-enable-new-pm=0']
+
+
+I added an Algebraic Simplification pass to optimize the IR code which follows the examples on the lecture slides. Also, I also found some bugs in my orignial Alloca2Reg and fixed them.

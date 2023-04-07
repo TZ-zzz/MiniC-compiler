@@ -4,23 +4,34 @@
 #
 # Tests a program path and against an expected output
 #
+
 import tester
+
 import os
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-
-# Change path to minicc here
+# Change the local_path to the path of minicc compiler
 local_path = SCRIPT_DIR + '/../build/'
 bcgen_path = [local_path + 'src/minicc']
 llgen_path = ['llvm-dis-15','output.bc','-o','output.ll']
-optgen_path = ['opt-15', '-O0', '-load', local_path + 'src/liballoca2reg.so', '-alloca2reg', 'output.bc', '-o', 'output_opt.bc', '-enable-new-pm=0']
+optgen_path = ['opt-15', '-O0','-load', local_path + 'src/liballoca2reg.so', '--alloca2reg', 'output.bc', '-o', 'output_opt.bc', '-enable-new-pm=0']
 lloptgen_path = ['llvm-dis-15','output_opt.bc','-o','output_opt.ll']
 execgen_path = ['clang-15', 'output_opt.bc', local_path + 'minicio/libminicio.a', '-o', 'output_opt']
 run_path = ['./output_opt']
 
-o3_optgen_path = ['opt-15', '-O3', 'output.bc', '-o', 'output_o3.bc', '-enable-new-pm=0']
-o3_execgen_path = ['clang-15',  'output_o3.bc', local_path + 'minicio/libminicio.a', '-o', 'output_o3']
+both_optgen_path = ['opt-15', '-O0', '-load', local_path + 'src/liballoca2reg.so', '--alloca2reg',
+                  '-load', local_path + 'src/libalgebraicsimplify.so', '--algebraicsimplification',
+                  'output.bc', '-o', 'output_both_opt.bc', '-enable-new-pm=0']
+both_execgen_path = ['clang-15', 'output_both_opt.bc',
+                     local_path + 'minicio/libminicio.a', '-o', 'output_both_opt']
+both_run_path = ['./output_both_opt']
+
+o3_optgen_path = ['opt-15', '-O3', 'output.bc', '-o', 'output_o3.bc']
+o3_execgen_path = ['clang-15', 'output_o3.bc', local_path + 'minicio/libminicio.a', '-o', 'output_o3']
 o3_run_path = ['./output_o3']
+
+no_execgen_path = ['clang-15', 'output.bc', local_path + 'minicio/libminicio.a', '-o', 'output']
+no_run_path = ['./output']
 
 test_cases = [
     ['test-cases/conds.c', 0, b'None', b'0 ', 2],
@@ -33,12 +44,15 @@ test_cases = [
     ['test-cases/radixsort.c', 1, b'170\n45\n75\n90\n802\n24\n2\n66 ', b'2 24 45 66 75 90 170 802 ', 5]
 ]
 timetest_cases = [
+    ['test-cases/my_sample.c', 0, b'None', None, 0],
     ['test-cases/queen_time.c', 1, b'13', None, 0],
 ]
-tmp_files = ['output.bc','output_opt.bc','output_opt','output.ll','output_opt.ll', 'output_o3.bc', 'output_o3']
+tmp_files = ['output.bc','output_opt.bc','output_opt', 'output_both_opt.ll',
+            'output_both_opt.bc', 'output_both_opt',
+            'output.ll','output_opt.ll', 'output_o3.bc', 'output_o3', "output"]
 def main():
-    test = tester.Core('Assignment 6 Public Tester', 23)
-    # Public tests
+    test = tester.Core('Assignment 6 Tester', 23)
+    # tests
     for case in test_cases:
         paths = []
         paths.append(bcgen_path + [case[0]])
@@ -48,7 +62,7 @@ def main():
         paths.append(execgen_path)
         test.generate_exec(paths)
         datain = case[2]
-        # Supply the executable and test program path
+        #Supply the executable and test program path
         test.exec_test(run_path, datain, case[1])
         # Check the program output against a string and assign a mark
         test.check_output(case[3], 1)
@@ -63,19 +77,29 @@ def main():
         paths.append(lloptgen_path)
         paths.append(execgen_path)
 
+        #commonSubExprElimination solution time test path
+        paths.append(both_optgen_path)
+        paths.append(both_execgen_path)
+
         #-O3 solution time test path
         paths.append(o3_optgen_path)
         paths.append(o3_execgen_path)
 
+        paths.append(no_execgen_path)
+
         test.generate_exec(paths)
         datain = case[2]
         test.exec_timetest(50,run_path, datain, case[1])
-        
+
+        #commonSubExprElimination time test
+        test.exec_timetest(50, both_run_path, datain, case[1])
+
         #-O3 time test
         test.exec_timetest(50,o3_run_path, datain, case[1])
-        
+
+        test.exec_timetest(50,no_run_path, datain, case[1])
+
         test.opt_check_output('output.ll','output_opt.ll',0)
         test.clean_up(tmp_files)
 if __name__ == '__main__':
     main()
-    

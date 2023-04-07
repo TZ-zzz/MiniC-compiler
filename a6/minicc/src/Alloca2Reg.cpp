@@ -49,7 +49,7 @@ namespace {
                     Instruction *inst = &*it2;
                     if (AllocaInst *alloca = dyn_cast<AllocaInst>(it2)) {
                         // for the pointer case, see piazza @434
-                        if (alloca->getAllocatedType()->isIntegerTy() && !alloca->isArrayAllocation()) {
+                        if (!alloca->getAllocatedType()->isAggregateType()) {
                             TargetAllocas.insert(alloca);
                         }
                     }
@@ -83,7 +83,7 @@ namespace {
                 all_phi.erase(phi);
                 return true;
             }
-            else if (phi->getNumIncomingValues() == 1) {
+            if (phi->getNumIncomingValues() == 1) {
                 phi->replaceAllUsesWith(phi->getIncomingValue(0));
                 phi->eraseFromParent();
                 all_phi.erase(phi);
@@ -92,8 +92,30 @@ namespace {
             else {
                 // try to remove incoming self referencing and undef value
                 for (int i = 0; i < phi->getNumIncomingValues(); i++) {
-                    if (phi->getIncomingValue(i) == phi || llvm::isa<llvm::UndefValue>(phi->getIncomingValue(i))) {
+                    if (llvm::isa<llvm::UndefValue>(phi->getIncomingValue(i)) || phi->getIncomingValue(i) == phi) {
                         phi->removeIncomingValue(i, false);
+                        if (phi->getNumIncomingValues() == 1) {
+                            if (llvm::isa<llvm::UndefValue>(phi->getIncomingValue(0)) || phi->getIncomingValue(0) == phi) {
+                                phi->eraseFromParent();
+                                all_phi.erase(phi);
+                                return true;
+                            }
+                            else {
+                                phi->replaceAllUsesWith(phi->getIncomingValue(0));
+                                phi->eraseFromParent();
+                                all_phi.erase(phi);
+                                return true;
+                            }
+                            return true;
+                        }
+                        else if (phi->getNumIncomingValues() == 0) {
+                            phi->eraseFromParent();
+                            all_phi.erase(phi);
+                            return true;
+                        }
+                        else {
+                            return false;
+                        }
                         return true;
                     }
                 }
@@ -145,13 +167,7 @@ namespace {
                         llvm::Value *v = ((LoadInst *) inst)->getPointerOperand();
                         if (TargetAllocas.find((llvm::AllocaInst*)v) != TargetAllocas.end()) {
                             Value *value = get_post(bb, (llvm::AllocaInst *)v);
-                            for (Instruction &it : bb->getInstList()) {
-                                for (int i = 0; i < it.getNumOperands(); i++) {
-                                    if (it.getOperand(i) == (LoadInst *) inst) {
-                                        it.setOperand(i, value);
-                                    }
-                                }
-                            }
+                            ((LoadInst *) inst)->replaceAllUsesWith(value);
                             all_inst.insert(inst);
 
                         }
@@ -237,6 +253,7 @@ namespace {
             all_phi.clear();
             all_inst.clear();
             deleted_phi.clear();
+
 
             return true;
         }
