@@ -5,7 +5,7 @@ int loop(){
     j = 0;
     c = true;
     d = false;
-    while (i < 20000000) {
+    while (i < 40000000) {
         k = j + i;
         j = i * 1;
         j = i / 1;

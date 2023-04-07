@@ -1,33 +1,21 @@
-int loop(){
-    int i, j, k;
-    bool a, b,c ,d;
-    i = 0;
-    j = 0;
-    c = true;
-    d = false;
-    while (i < 20000000) {
-        k = j + i;
-        j = i * 1;
-        j = i / 1;
-        j = i * 0;
-        if (i < 100000){
-            b = true;
-        }
-        else {
-            b = false;
-        }
-        // a = b && d;
-
-        a = b || c;
-        a = b && true;
-        a = b || false;
-        i = i + 1;
+#include "minicio.h"
+int loop2(){
+    int a, b, i, c;
+    a = 1;
+    b = 2;
+    c = 0;
+    for (i = 0; i < 200000000; i = i + 1) {
+        c = a + b;
+        c = a - b;
+        c = a * b;
+        c = a / b;
     }
-    return i;
+    return c;
 }
 
 int main(){
-    int i;
-    i = loop();
-    return i;
+    int a, b, c;
+    c = loop2();
+    putint(c);
+    return c;
 }

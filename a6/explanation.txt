@@ -1,8 +1,13 @@
-opt-15 -O0 -load src/liballoca2reg.so --alloca2reg -load src/libalgebraicsimplify.so --algebraicssimplification output.bc -o output_opt.bc -enable-new-pm=0
+opt-15 -O0 -load src/liballoca2reg.so --alloca2reg -load src/libalgebraicsimplify.so --algebraicsimplification -load src/libconstantfolding.so --constantfolding output.bc -o output_opt.bc -enable-new-pm=0
 
 both_optgen_path = ['opt-15', '-O0', '-load', local_path + 'src/liballoca2reg.so', '--alloca2reg',
-                  '-load', local_path + 'src/libalgebraicsimplify.so', '--algebraicsimplification',
+                  '-load', local_path + 'src/libalgebraicsimplify.so', '--algebraicsimplification', '-load', local_path + 'src/libconstantfolding.so', '--constantfolding',
                   'output.bc', '-o', 'output_both_opt.bc', '-enable-new-pm=0']
+both_execgen_path = ['clang-15', 'output_both_opt.bc',
+                     local_path + 'minicio/libminicio.a', '-o', 'output_both_opt']
+both_run_path = ['./output_both_opt']
 
 
 I added an Algebraic Simplification pass to optimize the IR code which follows the examples on the lecture slides. Also, I also found some bugs in my orignial Alloca2Reg and fixed them.
+
+I added another optimization which is constant folding.

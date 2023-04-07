@@ -15,16 +15,23 @@ local_path = SCRIPT_DIR + '/../build/'
 bcgen_path = [local_path + 'src/minicc']
 llgen_path = ['llvm-dis-15','output.bc','-o','output.ll']
 optgen_path = ['opt-15', '-O0','-load', local_path + 'src/liballoca2reg.so', '--alloca2reg', 'output.bc', '-o', 'output_opt.bc', '-enable-new-pm=0']
-lloptgen_path = ['llvm-dis-15','output_opt.bc','-o','output_opt.ll']
+lloptgen_path = ['llvm-dis-15','output_both_opt.bc','-o','output_both_opt.ll']
 execgen_path = ['clang-15', 'output_opt.bc', local_path + 'minicio/libminicio.a', '-o', 'output_opt']
 run_path = ['./output_opt']
 
 both_optgen_path = ['opt-15', '-O0', '-load', local_path + 'src/liballoca2reg.so', '--alloca2reg',
-                  '-load', local_path + 'src/libalgebraicsimplify.so', '--algebraicsimplification',
+                  '-load', local_path + 'src/libalgebraicsimplify.so', '--algebraicsimplification', '-load', local_path + 'src/libconstantfolding.so', '--constantfolding',
                   'output.bc', '-o', 'output_both_opt.bc', '-enable-new-pm=0']
 both_execgen_path = ['clang-15', 'output_both_opt.bc',
                      local_path + 'minicio/libminicio.a', '-o', 'output_both_opt']
 both_run_path = ['./output_both_opt']
+
+only_optgen_path = ['opt-15', '-O0', '-load', local_path + 'src/liballoca2reg.so', '--alloca2reg',
+                  '-load', local_path + 'src/libconstantfolding.so', '--constantfolding',
+                  'output.bc', '-o', 'output_only_opt.bc', '-enable-new-pm=0']
+only_execgen_path = ['clang-15', 'output_only_opt.bc',
+                     local_path + 'minicio/libminicio.a', '-o', 'output_only_opt']
+only_run_path = ['./output_only_opt']
 
 o3_optgen_path = ['opt-15', '-O3', 'output.bc', '-o', 'output_o3.bc']
 o3_execgen_path = ['clang-15', 'output_o3.bc', local_path + 'minicio/libminicio.a', '-o', 'output_o3']
@@ -46,6 +53,7 @@ test_cases = [
 timetest_cases = [
     ['test-cases/my_sample.c', 0, b'None', None, 0],
     ['test-cases/queen_time.c', 1, b'13', None, 0],
+    ['test-cases/sample.c', 0, b'None', None, 0],
 ]
 tmp_files = ['output.bc','output_opt.bc','output_opt', 'output_both_opt.ll',
             'output_both_opt.bc', 'output_both_opt',
@@ -57,16 +65,23 @@ def main():
         paths = []
         paths.append(bcgen_path + [case[0]])
         paths.append(llgen_path)
-        paths.append(optgen_path)
+        # paths.append(optgen_path)
+
+        # paths.append(execgen_path)
+        paths.append(both_optgen_path)
+        paths.append(both_execgen_path)
         paths.append(lloptgen_path)
-        paths.append(execgen_path)
+        # paths.append(only_optgen_path)
+        # paths.append(only_execgen_path)
         test.generate_exec(paths)
         datain = case[2]
         #Supply the executable and test program path
-        test.exec_test(run_path, datain, case[1])
+        # test.exec_test(run_path, datain, case[1])
+        test.exec_test(both_run_path, datain, case[1])
+        # test.exec_test(only_run_path, datain, case[1])
         # Check the program output against a string and assign a mark
         test.check_output(case[3], 1)
-        test.opt_check_output('output.ll','output_opt.ll',case[4]-1)
+        test.opt_check_output('output.ll','output_both_opt.ll',case[4]-1)
         test.clean_up(tmp_files)
     # Time test
     for case in timetest_cases:
@@ -74,12 +89,16 @@ def main():
         paths.append(bcgen_path + [case[0]])
         paths.append(llgen_path)
         paths.append(optgen_path)
-        paths.append(lloptgen_path)
+        
         paths.append(execgen_path)
 
         #commonSubExprElimination solution time test path
         paths.append(both_optgen_path)
+        paths.append(lloptgen_path)
         paths.append(both_execgen_path)
+
+        paths.append(only_optgen_path)
+        paths.append(only_execgen_path)
 
         #-O3 solution time test path
         paths.append(o3_optgen_path)
@@ -94,12 +113,14 @@ def main():
         #commonSubExprElimination time test
         test.exec_timetest(50, both_run_path, datain, case[1])
 
+        test.exec_timetest(50, only_run_path, datain, case[1])
+
         #-O3 time test
         test.exec_timetest(50,o3_run_path, datain, case[1])
 
         test.exec_timetest(50,no_run_path, datain, case[1])
 
-        test.opt_check_output('output.ll','output_opt.ll',0)
+        test.opt_check_output('output.ll','output_both_opt.ll',0)
         test.clean_up(tmp_files)
 if __name__ == '__main__':
     main()

@@ -25,7 +25,7 @@ namespace {
         AlgebraicSimplification() : FunctionPass(ID) {}
 
         virtual bool runOnFunction(Function &F) {
-            errs() << "Working on function called " << F.getName() << "!\n";
+            errs() << "Algebraic Simplification Working on function called " << F.getName() << "!\n";
 
             bool changed = false;
             while (changed){
@@ -86,7 +86,8 @@ namespace {
                         if (llvm::isa<ConstantInt>(LHS) && llvm::isa<ConstantInt>(RHS)) {
                             ConstantInt *LHSInt = dyn_cast<ConstantInt>(LHS);
                             ConstantInt *RHSInt = dyn_cast<ConstantInt>(RHS);
-                            if (LHSInt->isZero() || RHSInt->isZero()) return ConstantInt::getFalse(LHS->getType());
+                            if (LHSInt->isZero()) return ConstantInt::getFalse(LHS->getType());
+                            if (RHSInt->isZero()) return ConstantInt::getFalse(LHS->getType());
                             if (LHSInt->isOne() && RHSInt->isOne()) return ConstantInt::getTrue(LHS->getType());
                             if (LHSInt->isOne()) return RHS;
                             if (RHSInt->isOne()) return LHS;
@@ -96,10 +97,11 @@ namespace {
                         if (llvm::isa<ConstantInt>(LHS) && llvm::isa<ConstantInt>(RHS)) {
                             ConstantInt *LHSInt = dyn_cast<ConstantInt>(LHS);
                             ConstantInt *RHSInt = dyn_cast<ConstantInt>(RHS);
+                            if (LHSInt->isZero()) return RHS;
+                            if (RHSInt->isZero()) return LHS;
+                            if (LHSInt->isOne()) return ConstantInt::getTrue(LHS->getType());
+                            if (RHSInt->isOne()) return ConstantInt::getTrue(LHS->getType());
                             if (LHSInt->isZero() && RHSInt->isZero()) return ConstantInt::getFalse(LHS->getType());
-                            if (LHSInt->isOne() || RHSInt->isOne()) return ConstantInt::getTrue(LHS->getType());
-                            if (LHSInt->isZero()) return LHS;
-                            if (RHSInt->isZero()) return RHS;
                         }
                         break;
                 }
@@ -110,7 +112,7 @@ namespace {
     };
 }
 
-char AlgebraicSimplification::ID = 1;
+char AlgebraicSimplification::ID = 2;
 
 static RegisterPass<AlgebraicSimplification> X("algebraicsimplification", "Algebraic Simplification pass for minic", false, false);
 
@@ -118,7 +120,7 @@ static RegisterPass<AlgebraicSimplification> X("algebraicsimplification", "Algeb
 // http://adriansampson.net/blog/clangpass.html
 static void registerAlgebraicSimplificationPass(const PassManagerBuilder &,
                                     legacy::PassManagerBase &PM) {
-    PM.add(new AlgebraicSimplification ());
+    PM.add(new AlgebraicSimplification());
 }
 static RegisterStandardPasses
         RegisterMyPass(PassManagerBuilder::EP_EarlyAsPossible,
